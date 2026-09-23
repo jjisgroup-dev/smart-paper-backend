@@ -1,0 +1,76 @@
+{
+  "CBSE": [
+    {
+      "classLevel": "Class 1",
+      "id": "class-1-math-shapes",
+      "name": "Finding The Furry Cat (Shapes & Space)",
+      "subject": "Mathematics",
+      "textbook": "Joyful-Mathematics",
+      "edition": "2026",
+      "sections": ["Inside and Outside", "Bigger and Smaller", "Shapes around Us"],
+      "concepts": ["spatial understanding", "basic 2D shapes", "relative sizes"],
+      "learningOutcomes": ["Distinguish between basic shapes and positions"],
+      "sourceUrl": "https://ncert.nic.in/textbook.php"
+    },
+    {
+      "classLevel": "Class 1",
+      "id": "class-1-math-numbers-1-9",
+      "name": "What is Long? What is Round?",
+      "subject": "Mathematics",
+      "textbook": "Joyful-Mathematics",
+      "edition": "2026",
+      "sections": ["Counting 1 to 9", "Comparing Groups", "Number Patterns"],
+      "concepts": ["cardinality", "counting sequence", "group comparisons"],
+      "learningOutcomes": ["Count objects up to 9 and compare quantities"],
+      "sourceUrl": "https://ncert.nic.in/textbook.php"
+    },
+    {
+      "classLevel": "Class 6",
+      "id": "class-6-science-food",
+      "name": "Components of Food",
+      "subject": "Science",
+      "textbook": "NCERT Science",
+      "edition": "2026",
+      "sections": ["Nutrients", "Balanced diet", "Deficiency diseases"],
+      "concepts": ["carbohydrates", "proteins", "vitamins", "minerals"],
+      "learningOutcomes": ["Identify nutrients in common foods and plan balanced meals"],
+      "sourceUrl": "https://ncert.nic.in/textbook.php"
+    },
+    {
+      "classLevel": "Class 6",
+      "id": "class-6-science-matter",
+      "name": "Sorting Materials into Groups",
+      "subject": "Science",
+      "textbook": "NCERT Science",
+      "edition": "2026",
+      "sections": ["Properties of Materials", "Appearance", "Hardness", "Solubility"],
+      "concepts": ["transparency", "density", "solubility"],
+      "learningOutcomes": ["Classify objects based on observable physical properties"],
+      "sourceUrl": "https://ncert.nic.in/textbook.php"
+    },
+    {
+      "classLevel": "Class 10",
+      "id": "class-10-science-chemical-reactions",
+      "name": "Chemical Reactions and Equations",
+      "subject": "Science",
+      "textbook": "NCERT Science",
+      "edition": "2026",
+      "sections": ["Chemical Equations", "Types of Chemical Reactions", "Corrosion and Rancidity"],
+      "concepts": ["combination reaction", "decomposition", "redox", "balancing equations"],
+      "learningOutcomes": ["Write balanced chemical equations and predict reaction outcomes"],
+      "sourceUrl": "https://ncert.nic.in/textbook.php"
+    },
+    {
+      "classLevel": "Class 10",
+      "id": "class-10-math-real-numbers",
+      "name": "Real Numbers",
+      "subject": "Mathematics",
+      "textbook": "NCERT Mathematics",
+      "edition": "2026",
+      "sections": ["The Fundamental Theorem of Arithmetic", "Revisiting Irrational Numbers"],
+      "concepts": ["prime factorization", "LCM and HCF", "irrationality proof"],
+      "learningOutcomes": ["Apply the Fundamental Theorem of Arithmetic to solve numerical problems"],
+      "sourceUrl": "https://ncert.nic.in/textbook.php"
+    }
+  ]
+}
