@@ -3,6 +3,7 @@ import cors from 'cors';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import OpenAI from 'openai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,63 +14,81 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// Load the complete CBSE dataset
+// Initialize Groq via OpenAI client compatibility
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: 'https://api.groq.com/openai/v1',
+});
+
+// Load syllabus
 const catalogPath = join(__dirname, 'data', 'cbse.json');
 let allChapters = [];
-
 try {
-  const fileContent = JSON.parse(readFileSync(catalogPath, 'utf-8'));
-  allChapters = fileContent.CBSE || [];
-} catch (error) {
-  console.error('Failed to load data/cbse.json:', error);
+  allChapters = JSON.parse(readFileSync(catalogPath, 'utf-8')).CBSE || [];
+} catch (e) {
+  console.error(e);
 }
 
-// Root Health Check
-app.get('/', (req, res) => {
-  res.json({
-    status: 'healthy',
-    service: 'smart-paper-textbook-api',
-    totalChapters: allChapters.length
-  });
-});
-
-// Helper to normalize grade level comparisons
-function normalizeGrade(val) {
-  if (!val) return '';
-  const s = val.toString().trim().toLowerCase();
-  if (s.includes('lkg') || s.includes('jr') || s.includes('junior')) return 'lkg';
-  if (s.includes('ukg') || s.includes('sr') || s.includes('senior')) return 'ukg';
-  return s.replace(/[^0-9]/g, '');
-}
-
-// Catalog Endpoint expected by Vite
+// 1. Textbook Catalog Endpoint
 app.get('/textbook-catalog', (req, res) => {
   const { board = 'CBSE', classLevel, subject } = req.query;
-
   let filtered = allChapters;
-
   if (classLevel) {
-    const targetGrade = normalizeGrade(classLevel);
-    filtered = filtered.filter(item => normalizeGrade(item.classLevel) === targetGrade);
+    const cleanLvl = classLevel.toString().replace(/[^0-9]/g, '');
+    filtered = filtered.filter(c => c.classLevel?.toString().replace(/[^0-9]/g, '') === cleanLvl);
   }
-
   if (subject) {
-    const targetSub = subject.toString().trim().toLowerCase();
-    filtered = filtered.filter(
-      item => item.subject.trim().toLowerCase() === targetSub
-    );
+    filtered = filtered.filter(c => c.subject?.toLowerCase() === subject.toString().toLowerCase());
   }
-
-  // Remove internal classLevel key to match QuestionPaper Studio specification
-  const cleanedChapters = filtered.map(({ classLevel: _, ...rest }) => rest);
-
-  res.json({
-    board: board.toUpperCase(),
-    updatedAt: new Date().toISOString(),
-    chapters: cleanedChapters
-  });
+  const chapters = filtered.map(({ classLevel: _, ...rest }) => rest);
+  res.json({ board: board.toUpperCase(), updatedAt: new Date().toISOString(), chapters });
 });
 
-app.listen(PORT, () => {
-  console.log(`Textbook API running on port ${PORT}`);
+// 2. AI Question Paper Generation Gateway
+app.post('/api/generate-paper', async (req, res) => {
+  try {
+    const { classLevel, subject, chapter, difficulty, examFormat, totalMarks = 25 } = req.body;
+
+    const systemPrompt = `You are an expert CBSE school teacher. Generate a balanced, authentic question paper adhering strictly to the NCERT curriculum. Return ONLY valid raw JSON matching this schema:
+    {
+      "title": "${subject} - ${examFormat}",
+      "meta": "Class ${classLevel} ${subject} • ${totalMarks} Marks",
+      "questions": [
+        {
+          "number": 1,
+          "text": "Question text here?",
+          "marks": 1,
+          "type": "mcq",
+          "options": ["Option A", "Option B", "Option C", "Option D"],
+          "answer": "Option A"
+        },
+        {
+          "number": 2,
+          "text": "Short descriptive question?",
+          "marks": 2,
+          "type": "short",
+          "answer": "Model answer points here."
+        }
+      ]
+    }`;
+
+    const userPrompt = `Create a ${difficulty || 'medium'} difficulty question paper for Class ${classLevel}, Subject: ${subject}, Topic/Chapter: ${chapter || 'All Chapters'}. Total Marks: ${totalMarks}. Ensure real subject content, authentic questions, and accurate answers.`;
+
+    const completion = await groq.chat.completions.create({
+      model: process.env.VITE_AI_MODEL || 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      response_format: { type: 'json_object' }
+    });
+
+    const parsedPaper = JSON.parse(completion.choices[0].message.content);
+    res.json(parsedPaper);
+  } catch (error) {
+    console.error('Generation failed:', error);
+    res.status(500).json({ error: 'Failed to generate paper', details: error.message });
+  }
 });
+
+app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
