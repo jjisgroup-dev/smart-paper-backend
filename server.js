@@ -91,5 +91,7 @@ app.post('/api/generate-paper', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate paper', details: error.message });
   }
 });
-
+app.get('/', (req, res) => {
+  res.json({ status: 'healthy', service: 'smart-paper-backend' });
+});
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
