@@ -14,12 +14,13 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize Groq via OpenAI client compatibility
+// Initialize Groq via OpenAI client compatibility with crash prevention
+const groqApiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || 'placeholder_key_to_prevent_startup_crash';
+
 const groq = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: groqApiKey,
   baseURL: 'https://api.groq.com/openai/v1',
 });
-
 // Load syllabus
 const catalogPath = join(__dirname, 'data', 'cbse.json');
 let allChapters = [];
