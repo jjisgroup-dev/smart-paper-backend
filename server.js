@@ -8,60 +8,68 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
-// Enable CORS so your Vite frontend can fetch data across domains
 app.use(cors());
 app.use(express.json());
 
-// Load catalog database
+// Load the complete CBSE dataset
 const catalogPath = join(__dirname, 'data', 'cbse.json');
-let rawData = {};
+let allChapters = [];
+
 try {
-  rawData = JSON.parse(readFileSync(catalogPath, 'utf-8'));
+  const fileContent = JSON.parse(readFileSync(catalogPath, 'utf-8'));
+  allChapters = fileContent.CBSE || [];
 } catch (error) {
-  console.error('Failed to read data/cbse.json:', error);
+  console.error('Failed to load data/cbse.json:', error);
 }
 
-// Health check route
+// Root Health Check
 app.get('/', (req, res) => {
-  res.json({ status: 'healthy', service: 'smart-paper-textbook-api' });
+  res.json({
+    status: 'healthy',
+    service: 'smart-paper-textbook-api',
+    totalChapters: allChapters.length
+  });
 });
 
-// Textbook Catalog Route matching README specifications
+// Helper to normalize grade level comparisons
+function normalizeGrade(val) {
+  if (!val) return '';
+  const s = val.toString().trim().toLowerCase();
+  if (s.includes('lkg') || s.includes('jr') || s.includes('junior')) return 'lkg';
+  if (s.includes('ukg') || s.includes('sr') || s.includes('senior')) return 'ukg';
+  return s.replace(/[^0-9]/g, '');
+}
+
+// Catalog Endpoint expected by Vite
 app.get('/textbook-catalog', (req, res) => {
   const { board = 'CBSE', classLevel, subject } = req.query;
 
-  const boardKey = board.toUpperCase();
-  const boardData = rawData[boardKey] || [];
-
-  let filteredChapters = boardData;
+  let filtered = allChapters;
 
   if (classLevel) {
-    // Normalize format (handles "6", "Class 6", "Class VI", etc.)
-    const normalizedClass = classLevel.toString().replace(/[^0-9]/g, '');
-    filteredChapters = filteredChapters.filter((item) => {
-      const itemClassNum = item.classLevel?.toString().replace(/[^0-9]/g, '');
-      return itemClassNum === normalizedClass || item.classLevel === classLevel;
-    });
+    const targetGrade = normalizeGrade(classLevel);
+    filtered = filtered.filter(item => normalizeGrade(item.classLevel) === targetGrade);
   }
 
   if (subject) {
-    filteredChapters = filteredChapters.filter(
-      (item) => item.subject.toLowerCase() === subject.toString().toLowerCase()
+    const targetSub = subject.toString().trim().toLowerCase();
+    filtered = filtered.filter(
+      item => item.subject.trim().toLowerCase() === targetSub
     );
   }
 
-  // Remove internal classLevel key before sending, matching exact expected response shape
-  const cleanedChapters = filteredChapters.map(({ classLevel: _, ...rest }) => rest);
+  // Remove internal classLevel key to match QuestionPaper Studio specification
+  const cleanedChapters = filtered.map(({ classLevel: _, ...rest }) => rest);
 
   res.json({
-    board: boardKey,
+    board: board.toUpperCase(),
     updatedAt: new Date().toISOString(),
     chapters: cleanedChapters
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`Textbook API running on port ${PORT}`);
 });

@@ -1,7 +1,7 @@
 {
   "name": "smart-paper-backend",
   "version": "1.0.0",
-  "description": "Textbook catalog and syllabus API for Smart Paper Creator",
+  "description": "NCERT/CBSE Textbook Catalog API for Question Paper Studio",
   "main": "server.js",
   "type": "module",
   "scripts": {
