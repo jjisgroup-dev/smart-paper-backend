@@ -90,6 +90,7 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
       ],
       max_completion_tokens: 4096,
       reasoning_effort: 'low',
+      response_format: { type: 'json_object' },
     });
 
     let completion = await createCompletion();
