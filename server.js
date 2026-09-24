@@ -87,12 +87,12 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      response_format: { type: 'json_object' }
     });
 
     const content = completion.choices[0]?.message?.content;
     if (!content) throw new Error('Groq returned an empty response.');
-    const generated = JSON.parse(content);
+    const jsonContent = content.match(/\{[\s\S]*\}/)?.[0] || content;
+    const generated = JSON.parse(jsonContent);
     const parsedPaper = {
       id: generated.id || `ai-${Date.now()}`,
       title: generated.title || `${subject} - ${examFormat}`,
