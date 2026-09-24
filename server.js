@@ -11,7 +11,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-app.use(cors());
+app.use(cors({ origin: process.env.FRONTEND_ORIGIN || true }));
 app.use(express.json());
 
 // Initialize Groq client
@@ -20,7 +20,17 @@ const groq = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
 });
 
-// Load syllabus catalog
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'smart-paper-backend' });
+});
+
+app.get('/health', (req, res) => {
+  res.status(process.env.GROQ_API_KEY ? 200 : 503).json({
+    status: process.env.GROQ_API_KEY ? 'ok' : 'missing GROQ_API_KEY',
+  });
+});
+
+// Load syllabus
 const catalogPath = join(__dirname, 'data', 'cbse.json');
 let allChapters = [];
 try {
@@ -28,11 +38,6 @@ try {
 } catch (err) {
   console.warn('Could not load cbse.json, using empty catalog.');
 }
-
-// Root Route
-app.get('/', (req, res) => {
-  res.json({ status: 'healthy', service: 'smart-paper-backend' });
-});
 
 // Textbook Catalog Endpoint
 app.get('/textbook-catalog', (req, res) => {
@@ -67,16 +72,11 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
       return res.status(500).json({ error: 'GROQ_API_KEY is missing on Render backend environment.' });
     }
 
-    const { messages, classLevel, subject, chapter, difficulty, examFormat, totalMarks = 25 } = req.body;
-
-    // Handle standard chat completions payload from client
-    if (messages && Array.isArray(messages)) {
-      const completion = await groq.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
-        messages: messages,
-        response_format: { type: 'json_object' }
-      });
-      return res.json(completion);
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(503).json({ error: 'The AI service is not configured. Add GROQ_API_KEY in Render environment variables.' });
+    }
+    if (!classLevel || !subject || !examFormat) {
+      return res.status(400).json({ error: 'classLevel, subject, and examFormat are required.' });
     }
 
     // Direct structured generation fallback
@@ -84,7 +84,7 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
     const userPrompt = `Create a ${difficulty || 'medium'} difficulty question paper for Class ${classLevel || '8'}, Subject: ${subject || 'English'}, Topic: ${chapter || 'All Chapters'}, Exam: ${examFormat || 'Annual examination'}, Total Marks: ${totalMarks}.`;
 
     const completion = await groq.chat.completions.create({
-      model: process.env.VITE_AI_MODEL || 'llama-3.1-8b-instant',
+      model: process.env.GROQ_MODEL || process.env.VITE_AI_MODEL || 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -92,16 +92,39 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
       response_format: { type: 'json_object' }
     });
 
-    const parsed = JSON.parse(completion.choices[0].message.content);
-    return res.json(parsed);
-
+    const content = completion.choices[0]?.message?.content;
+    if (!content) throw new Error('Groq returned an empty response.');
+    const generated = JSON.parse(content);
+    const parsedPaper = {
+      id: generated.id || `ai-${Date.now()}`,
+      title: generated.title || `${subject} - ${examFormat}`,
+      class: classLevel,
+      subject,
+      examType: generated.examType || 'annual',
+      difficulty: difficulty || 'medium',
+      totalMarks: generated.totalMarks || totalMarks,
+      duration: generated.duration || '3 Hours',
+      instructions: generated.instructions || ['Read all questions carefully before answering.'],
+      board: 'CBSE',
+      questions: Array.isArray(generated.questions) ? generated.questions.map((question, index) => ({
+        id: question.id || `ai-${Date.now()}-${index}`,
+        question: question.question || question.text || '',
+        answer: question.answer || '',
+        options: question.options,
+        marks: question.marks || 1,
+        type: question.type || 'short',
+        difficulty: question.difficulty || difficulty || 'medium',
+        chapter: question.chapter || chapter || 'All Chapters',
+        subject,
+        classLevel,
+        board: 'CBSE',
+      })) : [],
+    };
+    if (parsedPaper.questions.length === 0) throw new Error('Groq returned a paper without questions.');
+    res.json(parsedPaper);
   } catch (error) {
-    console.error('Generation failure:', error);
-    // Always return valid JSON so the frontend doesn't throw "Unexpected end of JSON"
-    return res.status(500).json({
-      error: 'Generation failed',
-      details: error.message
-    });
+    console.error('Generation failed:', error);
+    res.status(502).json({ error: 'Failed to generate paper', details: error instanceof Error ? error.message : 'Unknown AI service error' });
   }
 });
 
