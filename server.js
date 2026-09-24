@@ -82,7 +82,7 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
     const systemPrompt = `You are an expert CBSE teacher. Generate a balanced, authentic question paper adhering strictly to the NCERT curriculum. Return ONLY valid JSON with keys "title", "meta", and "questions" (each having "number", "text", "marks", "type", "options", "answer").`;
     const userPrompt = `Create a ${difficulty || 'medium'} difficulty question paper for Class ${classLevel || '8'}, Subject: ${subject || 'English'}, Topic: ${chapter || 'All Chapters'}, Exam: ${examFormat || 'Annual examination'}, Total Marks: ${totalMarks}.`;
 
-    const completion = await groq.chat.completions.create({
+    const createCompletion = () => groq.chat.completions.create({
       model: process.env.GROQ_MODEL || process.env.VITE_AI_MODEL || 'openai/gpt-oss-20b',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -90,7 +90,12 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
       ],
     });
 
-    const content = completion.choices[0]?.message?.content;
+    let completion = await createCompletion();
+    let content = completion.choices[0]?.message?.content;
+    if (!content) {
+      completion = await createCompletion();
+      content = completion.choices[0]?.message?.content;
+    }
     if (!content) throw new Error('Groq returned an empty response.');
     const jsonContent = content.match(/\{[\s\S]*\}/)?.[0] || content;
     const generated = JSON.parse(jsonrepair(jsonContent));
