@@ -82,7 +82,7 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
     const userPrompt = `Create a ${difficulty || 'medium'} difficulty question paper for Class ${classLevel || '8'}, Subject: ${subject || 'English'}, Topic: ${chapter || 'All Chapters'}, Exam: ${examFormat || 'Annual examination'}, Total Marks: ${totalMarks}.`;
 
     const completion = await groq.chat.completions.create({
-      model: process.env.GROQ_MODEL || process.env.VITE_AI_MODEL || 'llama-3.3-70b-versatile',
+      model: process.env.GROQ_MODEL || process.env.VITE_AI_MODEL || 'openai/gpt-oss-20b',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
