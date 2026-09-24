@@ -88,6 +88,8 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
+      max_completion_tokens: 4096,
+      reasoning_effort: 'low',
     });
 
     let completion = await createCompletion();
