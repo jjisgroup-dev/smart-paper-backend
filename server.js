@@ -12,7 +12,32 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || true }));
+// Allowed origins for CORS (Hostinger production + local testing)
+const allowedOrigins = [
+  'https://smart-paper.astroapps.fun',
+  'https://astroapps.fun',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_ORIGIN
+].filter(Boolean);
+
+// CORS configuration middleware
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow non-browser requests (Postman, curl, server-to-server) or listed origins
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true
+}));
+
+// Explicit preflight handling
+app.options('*', cors());
+
 app.use(express.json());
 
 // Initialize Groq client
