@@ -68,9 +68,7 @@ app.get('/textbook-catalog', (req, res) => {
 // AI Generation Gateway Route - accepts all common endpoints used by Vite
 app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], async (req, res) => {
   try {
-    if (!process.env.GROQ_API_KEY) {
-      return res.status(500).json({ error: 'GROQ_API_KEY is missing on Render backend environment.' });
-    }
+    const { classLevel, subject, chapter, difficulty, examFormat, totalMarks = 25 } = req.body;
 
     if (!process.env.GROQ_API_KEY) {
       return res.status(503).json({ error: 'The AI service is not configured. Add GROQ_API_KEY in Render environment variables.' });
