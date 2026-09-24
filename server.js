@@ -72,7 +72,7 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
     // Handle standard chat completions payload from client
     if (messages && Array.isArray(messages)) {
       const completion = await groq.chat.completions.create({
-        model: process.env.VITE_AI_MODEL || 'llama-3.1-70b-versatile',
+        model: process.env.VITE_AI_MODEL || 'llama-3.1-8b-instant',
         messages: messages,
         response_format: { type: 'json_object' }
       });
