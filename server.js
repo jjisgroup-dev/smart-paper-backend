@@ -4,6 +4,7 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import OpenAI from 'openai';
+import { jsonrepair } from 'jsonrepair';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -92,7 +93,7 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
     const content = completion.choices[0]?.message?.content;
     if (!content) throw new Error('Groq returned an empty response.');
     const jsonContent = content.match(/\{[\s\S]*\}/)?.[0] || content;
-    const generated = JSON.parse(jsonContent);
+    const generated = JSON.parse(jsonrepair(jsonContent));
     const parsedPaper = {
       id: generated.id || `ai-${Date.now()}`,
       title: generated.title || `${subject} - ${examFormat}`,
