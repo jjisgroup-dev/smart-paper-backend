@@ -12,10 +12,14 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Allowed origins for CORS (Hostinger production + local testing)
+// Allowed origins for CORS (Hostinger production + local testing + Capacitor mobile app)
 const allowedOrigins = [
   'https://smart-paper.astroapps.fun',
   'https://astroapps.fun',
+  'https://localhost',
+  'capacitor://localhost',
+  'ionic://localhost',
+  'http://localhost',
   'http://localhost:8080',
   'http://127.0.0.1:8080',
   'http://localhost:5173',
@@ -28,6 +32,14 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow non-browser requests (Postman, curl, server-to-server) or listed origins
     if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    // Allow any localhost/capacitor/ionic origin for local development and mobile apps
+    if (
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+      /^capacitor:\/\//.test(origin) ||
+      /^ionic:\/\//.test(origin)
+    ) {
       return callback(null, true);
     }
     return callback(new Error(`CORS blocked for origin: ${origin}`));
