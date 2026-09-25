@@ -16,6 +16,8 @@ const PORT = process.env.PORT || 10000;
 const allowedOrigins = [
   'https://smart-paper.astroapps.fun',
   'https://astroapps.fun',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
   'http://localhost:5173',
   'http://localhost:3000',
   process.env.FRONTEND_ORIGIN
@@ -94,7 +96,7 @@ app.get('/textbook-catalog', (req, res) => {
 // AI Generation Gateway Route - accepts all common endpoints used by Vite
 app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], async (req, res) => {
   try {
-    const { classLevel, subject, chapter, difficulty, examFormat, totalMarks = 25 } = req.body;
+    const { classLevel, subject, chapter, difficulty, examFormat, totalMarks = 25, textbookContext = [] } = req.body;
 
     if (!process.env.GROQ_API_KEY) {
       return res.status(503).json({ error: 'The AI service is not configured. Add GROQ_API_KEY in Render environment variables.' });
@@ -104,8 +106,9 @@ app.post(['/api/generate-paper', '/v1/chat/completions', '/chat/completions'], a
     }
 
     // Direct structured generation fallback
-    const systemPrompt = `You are an expert CBSE teacher. Generate a balanced, authentic question paper adhering strictly to the NCERT curriculum. Return ONLY valid JSON with keys "title", "meta", and "questions" (each having "number", "text", "marks", "type", "options", "answer").`;
-    const userPrompt = `Create a ${difficulty || 'medium'} difficulty question paper for Class ${classLevel || '8'}, Subject: ${subject || 'English'}, Topic: ${chapter || 'All Chapters'}, Exam: ${examFormat || 'Annual examination'}, Total Marks: ${totalMarks}.`;
+    const syllabus = Array.isArray(textbookContext) ? textbookContext : [];
+    const systemPrompt = `You are an expert CBSE teacher and NCERT textbook specialist. Generate authentic, subject-specific questions for the requested class and subject. Use only the supplied NCERT chapter names, concepts, sections, and learning outcomes as grounding. Do not write generic study-skills questions, placeholders, or questions from another subject. Every question must test a concrete NCERT fact, concept, example, process, calculation, grammar point, or interpretation appropriate to the class. Every answer must directly and correctly answer its question. Return ONLY valid JSON with keys "title", "questions", "instructions", "duration", and "totalMarks". Each question must have "question", "marks", "type", "answer", and optionally "options" and "chapter".`;
+    const userPrompt = `Create a ${difficulty || 'medium'} difficulty ${examFormat || 'Annual examination'} question paper for Class ${classLevel}, Subject: ${subject}, Topic: ${chapter || 'Entire syllabus'}, Total Marks: ${totalMarks}. Balance coverage across the supplied NCERT chapters. Include clear answers for every question and use the exact subject terminology expected at this level. NCERT syllabus grounding: ${JSON.stringify(syllabus)}`;
 
     const createCompletion = () => groq.chat.completions.create({
       model: process.env.GROQ_MODEL || process.env.VITE_AI_MODEL || 'openai/gpt-oss-20b',

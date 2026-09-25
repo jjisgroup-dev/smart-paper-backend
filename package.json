@@ -9,7 +9,7 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
+    "cors": "^2.8.6",
     "express": "^4.19.2",
     "jsonrepair": "^3.15.0",
     "openai": "^7.23.0"
